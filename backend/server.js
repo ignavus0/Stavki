@@ -11,51 +11,67 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Подключение к Neon
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASS,
-  port: process.env.DB_PORT,
+  connectionString: process.env.DATABASE_URL, // В Vercel добавишь как переменную
+  ssl: { rejectUnauthorized: false }, // Обязательно для Neon
 });
 
-// Инициализация таблиц
-async function initDb() {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        balance INT DEFAULT 200,
-        points INT DEFAULT 0
-      );
-
-      CREATE TABLE IF NOT EXISTS matches (
-        id BIGINT PRIMARY KEY,
-        team1 TEXT NOT NULL,
-        team2 TEXT NOT NULL,
-        start_time TIMESTAMP,
-        winner INT DEFAULT NULL,
-        status TEXT NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS bets (
-        id SERIAL PRIMARY KEY,
-        user_id INT REFERENCES users(id),
-        match_id BIGINT REFERENCES matches(id),
-        team INT NOT NULL,
-        amount INT NOT NULL,
-        result TEXT DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-    console.log("✅ Таблицы готовы");
-  } catch (err) {
-    console.error("Ошибка инициализации БД:", err.message);
-    throw err;
+// Тест подключения (опционально)
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error("Ошибка подключения к БД:", err);
+  } else {
+    console.log("Подключение к Neon успешно");
+    release();
   }
-}
-initDb();
+});
+
+// const pool = new Pool({
+//   user: process.env.DB_USER,
+//   host: process.env.DB_HOST,
+//   database: process.env.DB_NAME,
+//   password: process.env.DB_PASS,
+//   port: process.env.DB_PORT,
+// });
+
+// // Инициализация таблиц
+// async function initDb() {
+//   try {
+//     await pool.query(`
+//       CREATE TABLE IF NOT EXISTS users (
+//         id SERIAL PRIMARY KEY,
+//         username TEXT UNIQUE NOT NULL,
+//         balance INT DEFAULT 200,
+//         points INT DEFAULT 0
+//       );
+
+//       CREATE TABLE IF NOT EXISTS matches (
+//         id BIGINT PRIMARY KEY,
+//         team1 TEXT NOT NULL,
+//         team2 TEXT NOT NULL,
+//         start_time TIMESTAMP,
+//         winner INT DEFAULT NULL,
+//         status TEXT NOT NULL
+//       );
+
+//       CREATE TABLE IF NOT EXISTS bets (
+//         id SERIAL PRIMARY KEY,
+//         user_id INT REFERENCES users(id),
+//         match_id BIGINT REFERENCES matches(id),
+//         team INT NOT NULL,
+//         amount INT NOT NULL,
+//         result TEXT DEFAULT 'pending',
+//         created_at TIMESTAMP DEFAULT NOW()
+//       );
+//     `);
+//     console.log("✅ Таблицы готовы");
+//   } catch (err) {
+//     console.error("Ошибка инициализации БД:", err.message);
+//     throw err;
+//   }
+// }
+// initDb();
 
 // Логин
 app.post("/api/login", async (req, res) => {
